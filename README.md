@@ -1,5 +1,8 @@
 # Fund Minute Board
 
+Minute-by-minute dashboard for tracking fund changes, index moves, and
+exchange-rate impact.
+
 This project has two public pages:
 
 - `/` keeps minute history in each visitor's browser.
