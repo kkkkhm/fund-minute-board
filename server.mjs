@@ -8,6 +8,7 @@ const port = Number(process.env.PORT || 3456);
 const root = fileURLToPath(new URL(".", import.meta.url));
 const upstream = "https://web1.345569.xyz";
 const minuteMs = 60 * 1000;
+const resetOffsetMs = (4 * 60 + 30) * minuteMs;
 const dataDir = process.env.DATA_DIR || join(root, "server-data");
 const historyFile = join(dataDir, "history.json");
 const cache = new Map();
@@ -107,8 +108,8 @@ function publicPath(urlPath) {
   return target.startsWith(publicRoot) ? target : null;
 }
 
-function shanghaiDay(timestamp = Date.now()) {
-  return new Date(timestamp).toLocaleDateString("sv-SE", { timeZone: "Asia/Shanghai" });
+function historyDay(timestamp = Date.now()) {
+  return new Date(timestamp - resetOffsetMs).toLocaleDateString("sv-SE", { timeZone: "Asia/Shanghai" });
 }
 
 function minuteBucket(timestamp = Date.now()) {
@@ -117,7 +118,7 @@ function minuteBucket(timestamp = Date.now()) {
 
 function emptyHistory() {
   return {
-    day: shanghaiDay(),
+    day: historyDay(),
     latest: [],
     lastCollectedAt: 0,
     points: {},
@@ -172,7 +173,7 @@ class ServerCollector {
   async loadHistory() {
     try {
       const saved = JSON.parse(await readFile(historyFile, "utf8"));
-      if (saved.day === shanghaiDay() && saved.points) {
+      if (saved.day === historyDay() && saved.points) {
         this.history = { ...emptyHistory(), ...saved };
       }
     } catch {
@@ -186,10 +187,10 @@ class ServerCollector {
   }
 
   async importPoints(payload) {
-    if (payload?.day !== shanghaiDay() || !payload.points || typeof payload.points !== "object") {
+    if (payload?.day !== historyDay() || !payload.points || typeof payload.points !== "object") {
       throw new Error("Only current-day point history can be imported.");
     }
-    if (this.history.day !== shanghaiDay()) this.history = emptyHistory();
+    if (this.history.day !== historyDay()) this.history = emptyHistory();
 
     let importedPoints = 0;
     let importedSeries = 0;
@@ -200,7 +201,7 @@ class ServerCollector {
       for (const point of incoming) {
         const time = Number(point?.time);
         const change = Number(point?.change);
-        if (!Number.isFinite(time) || !Number.isFinite(change) || shanghaiDay(time) !== this.history.day) continue;
+        if (!Number.isFinite(time) || !Number.isFinite(change) || historyDay(time) !== this.history.day) continue;
         merged.set(minuteBucket(time), { change, time: minuteBucket(time) });
       }
       const points = [...merged.values()].sort((left, right) => left.time - right.time);
@@ -290,7 +291,7 @@ class ServerCollector {
       });
 
       if (!payload.items.length) throw new Error("The upstream page rendered no collectible rows.");
-      if (this.history.day !== shanghaiDay()) this.history = emptyHistory();
+      if (this.history.day !== historyDay()) this.history = emptyHistory();
       const timestamp = Date.now();
       const pointTime = minuteBucket(timestamp);
       for (const item of payload.items) {
@@ -301,7 +302,7 @@ class ServerCollector {
         } else {
           points.push(next);
         }
-        this.history.points[item.id] = points.filter((point) => shanghaiDay(point.time) === this.history.day);
+        this.history.points[item.id] = points.filter((point) => historyDay(point.time) === this.history.day);
       }
       this.history.latest = payload.items;
       this.history.lastCollectedAt = timestamp;

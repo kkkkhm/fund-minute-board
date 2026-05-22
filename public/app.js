@@ -8,6 +8,7 @@ const syncButton = document.querySelector("#sync-history");
 const syncStatus = document.querySelector("#sync-status");
 const storageKey = "fund-minute-board:v1";
 const minuteMs = 60 * 1000;
+const resetOffsetMs = (4 * 60 + 30) * minuteMs;
 
 const state = {
   funds: [],
@@ -19,8 +20,8 @@ const state = {
   sourceChangedAt: 0
 };
 
-function shanghaiDay(timestamp = Date.now()) {
-  return new Date(timestamp).toLocaleDateString("sv-SE", { timeZone: "Asia/Shanghai" });
+function historyDay(timestamp = Date.now()) {
+  return new Date(timestamp - resetOffsetMs).toLocaleDateString("sv-SE", { timeZone: "Asia/Shanghai" });
 }
 
 function minuteBucket(timestamp = Date.now()) {
@@ -30,7 +31,7 @@ function minuteBucket(timestamp = Date.now()) {
 function loadHistory() {
   try {
     const saved = JSON.parse(localStorage.getItem(storageKey) || "{}");
-    return saved.day === shanghaiDay() && saved.points ? saved.points : {};
+    return saved.day === historyDay() && saved.points ? saved.points : {};
   } catch {
     return {};
   }
@@ -38,7 +39,7 @@ function loadHistory() {
 
 function saveHistory() {
   localStorage.setItem(storageKey, JSON.stringify({
-    day: shanghaiDay(),
+    day: historyDay(),
     points: state.history
   }));
 }
@@ -48,7 +49,7 @@ async function syncHistoryToServer() {
   syncStatus.textContent = "正在同步...";
   try {
     const response = await fetch("/server-api/import", {
-      body: JSON.stringify({ day: shanghaiDay(), points: state.history }),
+      body: JSON.stringify({ day: historyDay(), points: state.history }),
       headers: { "content-type": "application/json" },
       method: "POST"
     });
@@ -136,7 +137,7 @@ function recordMinute(items, timestamp = Date.now()) {
     } else {
       points.push(next);
     }
-    state.history[item.id] = points.filter((point) => shanghaiDay(point.time) === shanghaiDay());
+    state.history[item.id] = points.filter((point) => historyDay(point.time) === historyDay());
   }
   state.lastCaptureAt = timestamp;
   saveHistory();
