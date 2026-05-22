@@ -4,6 +4,8 @@ const filterInput = document.querySelector("#fund-filter");
 const sortSelect = document.querySelector("#fund-sort");
 const canvas = document.querySelector("#curve");
 const chartEmpty = document.querySelector("#chart-empty");
+const syncButton = document.querySelector("#sync-history");
+const syncStatus = document.querySelector("#sync-status");
 const storageKey = "fund-minute-board:v1";
 const minuteMs = 60 * 1000;
 
@@ -39,6 +41,25 @@ function saveHistory() {
     day: shanghaiDay(),
     points: state.history
   }));
+}
+
+async function syncHistoryToServer() {
+  syncButton.disabled = true;
+  syncStatus.textContent = "正在同步...";
+  try {
+    const response = await fetch("/server-api/import", {
+      body: JSON.stringify({ day: shanghaiDay(), points: state.history }),
+      headers: { "content-type": "application/json" },
+      method: "POST"
+    });
+    const result = await response.json();
+    if (!response.ok || !result.ok) throw new Error(result.message || "同步失败");
+    syncStatus.textContent = `已同步 ${result.importedSeries} 条曲线，新增 ${result.importedPoints} 个采样点。`;
+  } catch (error) {
+    syncStatus.textContent = error instanceof Error ? error.message : "同步失败";
+  } finally {
+    syncButton.disabled = false;
+  }
 }
 
 function byOrderText(container) {
@@ -323,6 +344,7 @@ document.querySelector("#market-summary").addEventListener("click", (event) => {
 });
 filterInput.addEventListener("input", renderRows);
 sortSelect.addEventListener("change", renderRows);
+syncButton.addEventListener("click", syncHistoryToServer);
 window.addEventListener("resize", () => renderSelected());
 
 const observer = new MutationObserver(() => refreshFromSource());

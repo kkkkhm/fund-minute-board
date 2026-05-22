@@ -103,11 +103,11 @@ function renderCurve(item) {
 
   const padding = { bottom: 34, left: 54, right: 18, top: 20 };
   const values = points.map((point) => point.change);
-  const min = Math.min(0, ...values);
-  const max = Math.max(0, ...values);
-  const span = Math.max(0.2, max - min);
-  const low = min - span * 0.16;
-  const high = max + span * 0.16;
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+  const interval = Math.max(max - min, 0.05);
+  const low = min - interval * 0.2;
+  const high = max + interval * 0.2;
   const plotWidth = width - padding.left - padding.right;
   const plotHeight = height - padding.top - padding.bottom;
   const x = (index) => padding.left + (points.length === 1 ? plotWidth / 2 : plotWidth * index / (points.length - 1));

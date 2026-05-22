@@ -27,6 +27,17 @@ function send(response, status, headers, body) {
   response.end(body);
 }
 
+async function readJson(request, maxBytes = 2 * 1024 * 1024) {
+  const chunks = [];
+  let size = 0;
+  for await (const chunk of request) {
+    size += chunk.length;
+    if (size > maxBytes) throw new Error("Request body is too large.");
+    chunks.push(chunk);
+  }
+  return JSON.parse(Buffer.concat(chunks).toString("utf8") || "{}");
+}
+
 async function fetchUpstream(path, cacheMs = 0) {
   const cached = cache.get(path);
   if (cached && Date.now() - cached.time < cacheMs) {
@@ -174,6 +185,38 @@ class ServerCollector {
     await writeFile(historyFile, JSON.stringify(this.history, null, 2), "utf8");
   }
 
+  async importPoints(payload) {
+    if (payload?.day !== shanghaiDay() || !payload.points || typeof payload.points !== "object") {
+      throw new Error("Only current-day point history can be imported.");
+    }
+    if (this.history.day !== shanghaiDay()) this.history = emptyHistory();
+
+    let importedPoints = 0;
+    let importedSeries = 0;
+    for (const [id, incoming] of Object.entries(payload.points)) {
+      if (!id || !Array.isArray(incoming)) continue;
+      const merged = new Map((this.history.points[id] || []).map((point) => [point.time, point]));
+      const before = merged.size;
+      for (const point of incoming) {
+        const time = Number(point?.time);
+        const change = Number(point?.change);
+        if (!Number.isFinite(time) || !Number.isFinite(change) || shanghaiDay(time) !== this.history.day) continue;
+        merged.set(minuteBucket(time), { change, time: minuteBucket(time) });
+      }
+      const points = [...merged.values()].sort((left, right) => left.time - right.time);
+      if (!points.length) continue;
+      this.history.points[id] = points;
+      importedPoints += Math.max(0, merged.size - before);
+      importedSeries += 1;
+    }
+    await this.saveHistory();
+    return {
+      importedPoints,
+      importedSeries,
+      seriesCount: Object.keys(this.history.points).length
+    };
+  }
+
   async ensurePage() {
     if (this.page && !this.page.isClosed()) return this.page;
 
@@ -293,6 +336,15 @@ const server = createServer(async (request, response) => {
         "cache-control": "no-store",
         "content-type": types[".json"]
       }, JSON.stringify(collector.publicHistory()));
+      return;
+    }
+
+    if (url.pathname === "/server-api/import" && request.method === "POST") {
+      const result = await collector.importPoints(await readJson(request));
+      send(response, 200, {
+        "cache-control": "no-store",
+        "content-type": types[".json"]
+      }, JSON.stringify({ ok: true, ...result }));
       return;
     }
 
