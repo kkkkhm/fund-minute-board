@@ -3,6 +3,7 @@ const chartEmpty = document.querySelector("#chart-empty");
 const rowsTarget = document.querySelector("#curve-rows");
 const filterInput = document.querySelector("#curve-filter");
 const sortSelect = document.querySelector("#curve-sort");
+const minuteMs = 60 * 1000;
 const state = {
   latest: [],
   points: {},
@@ -38,6 +39,16 @@ function timeLabel(timestamp) {
   });
 }
 
+function minuteBucket(timestamp = Date.now()) {
+  return Math.floor(timestamp / minuteMs) * minuteMs;
+}
+
+function updateCountdown() {
+  const next = minuteBucket() + minuteMs;
+  const seconds = Math.max(0, Math.ceil((next - Date.now()) / 1000));
+  document.querySelector("#sample-countdown").textContent = `${seconds}s`;
+}
+
 function pointsFor(id) {
   return state.points[id] || [];
 }
@@ -58,7 +69,6 @@ function renderSummary(payload) {
   document.querySelector("#fund-total").textContent = String(funds.length);
   document.querySelector("#up-total").textContent = String(funds.filter((item) => item.change > 0).length);
   document.querySelector("#down-total").textContent = String(funds.filter((item) => item.change < 0).length);
-  document.querySelector("#sample-count").textContent = String(pointsFor(state.selectedId).length || "--");
   document.querySelector("#connection-label").textContent = payload.ready ? "后台采样中" : "等待后台采样";
   document.querySelector("#clock-label").textContent = payload.lastCollectedAt
     ? `${timeLabel(payload.lastCollectedAt)} 已采样${state.sourceTime ? `，${state.sourceTime}` : ""}`
@@ -159,7 +169,6 @@ function renderSelected() {
   const badge = document.querySelector("#selected-change");
   badge.textContent = item?.changeText || "--";
   badge.className = `change-pill ${item ? tone(item.change) : ""}`;
-  document.querySelector("#sample-count").textContent = String(pointsFor(state.selectedId).length || "--");
   renderCurve(item);
 }
 
@@ -198,3 +207,5 @@ sortSelect.addEventListener("change", renderRows);
 window.addEventListener("resize", renderSelected);
 refresh();
 setInterval(refresh, 30000);
+setInterval(updateCountdown, 1000);
+updateCountdown();
