@@ -1,0 +1,28 @@
+.server-board {
+  --table-pane-height: 520px;
+  --curve-plot-height: calc(var(--table-pane-height) * 0.6);
+}
+
+.server-board .curve-pane {
+  grid-template-rows: auto var(--curve-plot-height) auto;
+}
+
+.server-board .chart-shell,
+.server-board #curve {
+  height: var(--curve-plot-height);
+}
+
+.server-board .table-pane {
+  height: var(--table-pane-height);
+  min-height: var(--table-pane-height);
+}
+
+.server-board .table-scroll {
+  min-height: 0;
+}
+
+@media (max-width: 640px) {
+  .server-board {
+    --table-pane-height: 480px;
+  }
+}

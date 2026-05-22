@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>基金当日涨跌</title>
+    <link rel="stylesheet" href="/styles.css?v=range-axis">
+  </head>
+  <body>
+    <main id="dashboard" class="board">
+      <header class="masthead">
+        <div>
+          <p class="eyebrow">当日基金涨跌</p>
+          <h1>分钟看板</h1>
+        </div>
+        <div class="live-panel" aria-live="polite">
+          <span id="live-dot" class="live-dot"></span>
+          <div>
+            <strong id="connection-label">连接数据源</strong>
+            <p id="clock-label">等待第一批数据</p>
+          </div>
+        </div>
+      </header>
+
+      <section class="summary-band" aria-label="市场摘要">
+        <div id="market-summary" class="market-summary"></div>
+        <div class="metric-strip">
+          <article>
+            <p>基金数</p>
+            <strong id="fund-total">--</strong>
+          </article>
+          <article>
+            <p>上涨</p>
+            <strong id="up-total">--</strong>
+          </article>
+          <article>
+            <p>下跌</p>
+            <strong id="down-total">--</strong>
+          </article>
+          <article>
+            <p>下次采样</p>
+            <strong id="sample-countdown">--</strong>
+          </article>
+        </div>
+      </section>
+
+      <section class="workspace" aria-label="基金涨跌工作区">
+        <section class="curve-pane">
+          <div class="pane-head">
+            <div>
+              <p class="eyebrow">当日曲线</p>
+              <h2 id="selected-name">等待数据</h2>
+            </div>
+            <div id="selected-change" class="change-pill">--</div>
+          </div>
+          <div class="chart-shell">
+            <canvas id="curve" aria-label="选中基金当日涨跌曲线"></canvas>
+            <p id="chart-empty" class="chart-empty">每分钟采样后，这里会绘出当日曲线。</p>
+          </div>
+          <div id="chart-meta" class="chart-meta"></div>
+        </section>
+
+        <section class="table-pane">
+          <div class="table-toolbar">
+            <label class="search-field">
+              <span>筛选</span>
+              <input id="fund-filter" type="search" placeholder="输入基金或指标名称" autocomplete="off">
+            </label>
+            <label class="sort-field">
+              <span>排序</span>
+              <select id="fund-sort">
+                <option value="change-desc">涨幅高</option>
+                <option value="change-asc">涨幅低</option>
+                <option value="name">名称</option>
+              </select>
+            </label>
+          </div>
+          <div class="table-scroll">
+            <table>
+              <thead>
+                <tr>
+                  <th>曲线</th>
+                  <th>时段</th>
+                  <th>涨跌</th>
+                </tr>
+              </thead>
+              <tbody id="fund-rows"></tbody>
+            </table>
+          </div>
+        </section>
+      </section>
+    </main>
+
+    <aside id="upstream-shell" aria-hidden="true">
+      <div id="app"></div>
+    </aside>
+
+    <script type="module" src="/source/upstream.js"></script>
+    <script type="module" src="/app.js"></script>
+  </body>
+</html>
